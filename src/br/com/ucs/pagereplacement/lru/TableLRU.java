@@ -26,7 +26,7 @@ public class TableLRU extends Thread {
             Character character = chars.get(i);
             Page page1 = pages.stream().filter(page -> page.getValue().equals(character)).findFirst().orElse(null);
             //Se valor da página já existe , insere o mesmo objeto
-            if(page1 != null) {
+            if (page1 != null) {
                 pages.add(page1);
             } else {
                 //Se não existe cria novo objeto de página
@@ -53,7 +53,7 @@ public class TableLRU extends Thread {
 
         for (Page page : pages) {
             iteration++;
-            System.out.println("Inserir="+page.getValue());
+            System.out.println("Inserir=" + page.getValue());
 
             System.out.print("   ");
             pagesInserted.add(page);
@@ -61,14 +61,14 @@ public class TableLRU extends Thread {
 
             //Verifica se alguma frame está vazio para inserir neste
             Frame emptyFrame = getEmptyFrame();
-            if(emptyFrame!=null) {
-                insert(iteration,page,emptyFrame);
+            if (emptyFrame != null) {
+                insert(iteration, page, emptyFrame);
                 continue;
             }
 
             //Verfica se algum frame esteja utilizando esta página
             Frame frameUsingThisPage = findFrameUsingThisPage(page);
-            if(frameUsingThisPage != null) {
+            if (frameUsingThisPage != null) {
                 frameUsingThisPage.setLastInsertedIndex(iteration);
                 printFrames();
                 continue;
@@ -76,7 +76,7 @@ public class TableLRU extends Thread {
 
             //Defini qual frame deverá inserir a página
             Frame frameToInsert = compareAndGetFrameToInsert();
-            insert(iteration,page,frameToInsert);
+            insert(iteration, page, frameToInsert);
         }
 
 
@@ -85,10 +85,10 @@ public class TableLRU extends Thread {
     //Verifica qual frame possui a página a mais tempo não é referenciada
     private Frame compareAndGetFrameToInsert() {
         Frame frameToReturn = null;
-        int actualIndex = 100000;
+        int actualIndex = 900000;
 
         for (Frame frame : frames) {
-            if(frame.getLastInsertedIndex() < actualIndex) {
+            if (frame.getLastInsertedIndex() < actualIndex) {
                 frameToReturn = frame;
                 actualIndex = frame.getLastInsertedIndex();
             }
@@ -100,17 +100,38 @@ public class TableLRU extends Thread {
 
     //Insere página neste frame, em um índice específico
     private void insert(int iteration, Page page, Frame emptyFrame) {
-        emptyFrame.insert(iteration,page);
-        updateDifferentThanThis(emptyFrame,iteration);
+
+        try {
+            emptyFrame.setIndexToInsert(iteration);
+            emptyFrame.setOperation(0);
+            emptyFrame.setPageToInsert(page);
+
+            emptyFrame.getSem().release();
+            emptyFrame.getSemToInsert().acquire();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
+        updateDifferentThanThis(emptyFrame, iteration);
 
         printFrames();
     }
 
     //Chama método para atualizar os frames diferentes do passado por parâmetro com última página utilizada por eles
-    private void updateDifferentThanThis(Frame emptyFrame,int iteration) {
+    private void updateDifferentThanThis(Frame emptyFrame, int iteration) {
         List<Frame> collect = frames.stream().filter(frame -> frame.getId() != emptyFrame.getId()).collect(Collectors.toList());
         for (Frame frame : collect) {
-            frame.update(iteration);
+
+            try {
+                frame.setOperation(1);
+                frame.setIndexToInsert(iteration);
+//                frame.update(iteration);
+                frame.getSem().release();
+                frame.getSemToInsert().acquire();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+
         }
     }
 
@@ -118,7 +139,7 @@ public class TableLRU extends Thread {
     private Frame getEmptyFrame() {
         for (Frame frame : frames) {
             boolean empty = frame.isEmpty();
-            if(empty) return frame;
+            if (empty) return frame;
         }
         return null;
     }
@@ -127,7 +148,7 @@ public class TableLRU extends Thread {
     private Frame findFrameUsingThisPage(Page page) {
         for (Frame frame : frames) {
             Page pageFromFrame = frame.getActualPage();
-            if(pageFromFrame.getId()==page.getId()) {
+            if (pageFromFrame.getId() == page.getId()) {
                 return frame;
             }
         }
@@ -159,5 +180,13 @@ public class TableLRU extends Thread {
             str += frame.toDescriptiveString();
         }
         return str;
+    }
+
+    public List<Frame> getFrames() {
+        return frames;
+    }
+
+    public void setFrames(List<Frame> frames) {
+        this.frames = frames;
     }
 }
