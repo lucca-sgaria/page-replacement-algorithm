@@ -2,7 +2,7 @@ package br.com.ucs.pagereplacement.lru;
 
 public class TestMain {
     public static void main(String[] args) {
-        TableLRU lru = new TableLRU(3,"70120304230321201701");
+        Table lru = new Table(3,"70120304230321201701",AlgorithmMode.LRU);
 
         lru.getFrames().forEach(Thread::start);
         lru.start();
@@ -15,7 +15,6 @@ public class TestMain {
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
-
 
 
     }

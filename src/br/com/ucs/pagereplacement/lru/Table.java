@@ -4,13 +4,16 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
-public class TableLRU extends Thread {
+public class Table extends Thread {
     private List<Frame> frames = new ArrayList<>();
     private List<Page> pages = new ArrayList<>();
     private List<Page> pagesInserted = new ArrayList<>();
+    private int algorithm;
+    private int replacements;
 
-    public TableLRU(int framesSize, String word) {
+    public Table(int framesSize, String word, int algorithm) {
         super();
+        this.algorithm = algorithm;
         configurePages(word);
         configureFrames(framesSize, pages.size());
     }
@@ -75,22 +78,53 @@ public class TableLRU extends Thread {
             }
 
             //Defini qual frame deverá inserir a página
-            Frame frameToInsert = compareAndGetFrameToInsert();
+            Frame frameToInsert = compareAndGetFrameToInsert(iteration);
             insert(iteration, page, frameToInsert);
         }
-
+        System.out.println("Replacements="+replacements);
 
     }
 
     //Verifica qual frame possui a página a mais tempo não é referenciada
-    private Frame compareAndGetFrameToInsert() {
+    private Frame compareAndGetFrameToInsert(int iteration) {
         Frame frameToReturn = null;
-        int actualIndex = 900000;
+        if (algorithm == AlgorithmMode.LRU) {
 
-        for (Frame frame : frames) {
-            if (frame.getLastInsertedIndex() < actualIndex) {
-                frameToReturn = frame;
-                actualIndex = frame.getLastInsertedIndex();
+            int actualIndex = 900000;
+
+            for (Frame frame : frames) {
+                if (frame.getLastInsertedIndex() < actualIndex) {
+                    frameToReturn = frame;
+                    actualIndex = frame.getLastInsertedIndex();
+                }
+            }
+
+        } else if (algorithm == AlgorithmMode.OPTIMAL) {
+
+            int periodToUse = -999;
+
+            for (Frame frame : frames) {
+
+                int id = frame.getActualPage().getId();
+
+                //Copiar lista de páginas
+                List<Page> pages = new ArrayList<>();
+                pages.addAll(this.pages);
+                List<Page> pagesSublist = pages.subList(iteration, pages.size() - 1);
+                pagesSublist.remove(0);
+
+                //Calclar distancia até a página ser usada novamente
+                int timeToUseAgain = pagesSublist.size()+1;
+                for (Page page : pagesSublist) {
+                    timeToUseAgain++;
+                    if (page.getId() == id) break;
+                }
+
+                //Se distancia for a maior que a auxiliar, define como maior distancia atual.
+                if (timeToUseAgain > periodToUse) {
+                    frameToReturn = frame;
+                    periodToUse = timeToUseAgain;
+                }
             }
         }
 
@@ -112,8 +146,9 @@ public class TableLRU extends Thread {
             e.printStackTrace();
         }
 
-        updateDifferentThanThis(emptyFrame, iteration);
+        replacements++;
 
+        updateDifferentThanThis(emptyFrame, iteration);
         printFrames();
     }
 
@@ -188,5 +223,9 @@ public class TableLRU extends Thread {
 
     public void setFrames(List<Frame> frames) {
         this.frames = frames;
+    }
+
+    public int getReplacements() {
+        return replacements;
     }
 }
