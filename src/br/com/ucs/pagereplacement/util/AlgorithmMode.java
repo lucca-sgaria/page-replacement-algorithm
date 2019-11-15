@@ -1,4 +1,4 @@
-package br.com.ucs.pagereplacement.lru;
+package br.com.ucs.pagereplacement.util;
 
 public class AlgorithmMode {
     public static final int LRU = 0;

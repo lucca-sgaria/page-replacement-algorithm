@@ -1,4 +1,6 @@
-package br.com.ucs.pagereplacement.lru;
+package br.com.ucs.pagereplacement.model;
+
+import br.com.ucs.pagereplacement.util.AlgorithmMode;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -44,7 +46,7 @@ public class Table extends Thread {
     //Configura frames
     private void configureFrames(int size, int pagesSize) {
         for (int i = 0; i < size; i++) {
-            Frame frame = new Frame(i, pagesSize);
+            Frame frame = new Frame(i, pagesSize,this);
             frames.add(frame);
         }
     }
@@ -73,6 +75,7 @@ public class Table extends Thread {
             Frame frameUsingThisPage = findFrameUsingThisPage(page);
             if (frameUsingThisPage != null) {
                 frameUsingThisPage.setLastInsertedIndex(iteration);
+                frames.forEach(Frame::setOperationNull);
                 printFrames();
                 continue;
             }
@@ -82,7 +85,6 @@ public class Table extends Thread {
             insert(iteration, page, frameToInsert);
         }
         System.out.println("Replacements="+replacements);
-
     }
 
     //Verifica qual frame possui a página a mais tempo não é referenciada
@@ -140,7 +142,7 @@ public class Table extends Thread {
             emptyFrame.setOperation(0);
             emptyFrame.setPageToInsert(page);
 
-            emptyFrame.getSem().release();
+            emptyFrame.getSemaphore().release();
             emptyFrame.getSemToInsert().acquire();
         } catch (InterruptedException e) {
             e.printStackTrace();
@@ -154,14 +156,15 @@ public class Table extends Thread {
 
     //Chama método para atualizar os frames diferentes do passado por parâmetro com última página utilizada por eles
     private void updateDifferentThanThis(Frame emptyFrame, int iteration) {
-        List<Frame> collect = frames.stream().filter(frame -> frame.getId() != emptyFrame.getId()).collect(Collectors.toList());
+        List<Frame> collect = frames.stream().filter(frame -> frame.getId() != emptyFrame.getId())
+                .collect(Collectors.toList());
         for (Frame frame : collect) {
 
             try {
                 frame.setOperation(1);
                 frame.setIndexToInsert(iteration);
-//                frame.update(iteration);
-                frame.getSem().release();
+
+                frame.getSemaphore().release();
                 frame.getSemToInsert().acquire();
             } catch (InterruptedException e) {
                 e.printStackTrace();
@@ -221,11 +224,8 @@ public class Table extends Thread {
         return frames;
     }
 
-    public void setFrames(List<Frame> frames) {
-        this.frames = frames;
-    }
 
-    public int getReplacements() {
-        return replacements;
+    public List<Page> getPages() {
+        return pages;
     }
 }

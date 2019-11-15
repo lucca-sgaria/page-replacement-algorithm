@@ -1,4 +1,4 @@
-package br.com.ucs.pagereplacement.lru;
+package br.com.ucs.pagereplacement.model;
 
 public class Page {
     private int id;

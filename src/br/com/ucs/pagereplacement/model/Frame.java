@@ -1,5 +1,4 @@
-package br.com.ucs.pagereplacement.lru;
-
+package br.com.ucs.pagereplacement.model;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -12,45 +11,43 @@ public class Frame extends Thread {
     private int lastInsertedIndex = -1;
 
     private Semaphore semToInsert = new Semaphore(0);
+    private Semaphore semaphore = new Semaphore(0);
+
     private Page pageToInsert;
     private int indexToInsert;
     private int operation;
-    private Semaphore sem = new Semaphore(0);
 
+    private Table table;
 
-    public Frame(int frameId, int size) {
+    public Frame(int frameId, int size, Table table) {
         this.frameId = frameId;
+        this.table = table;
         initPages(size);
     }
 
     @Override
     public void run() {
         try {
-            while (true) {
-                sem.acquire();
-                if (operation == 0) {
-                    insert(indexToInsert, pageToInsert);
-                } else {
-                    update(indexToInsert);
+            int totalIterations = table.getPages().size();
+            while (totalIterations > 0) {
+                semaphore.acquire();
+
+                if (operation <= 1) {
+                    if (operation == 0) {
+                        insert(indexToInsert, pageToInsert);
+                    } else if (operation == 1) {
+                        update(indexToInsert);
+                    }
+                    semToInsert.release();
                 }
-                semToInsert.release();
+
+                totalIterations--;
             }
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
     }
 
-    public int getFrameId() {
-        return frameId;
-    }
-
-    public int getLastInsertedIndex() {
-        return lastInsertedIndex;
-    }
-
-    public void setLastInsertedIndex(int lastInsertedIndex) {
-        this.lastInsertedIndex = lastInsertedIndex;
-    }
 
     //Iniciar páginas com valor default.
     public void initPages(int size) {
@@ -92,47 +89,6 @@ public class Frame extends Thread {
         return !pages.stream().anyMatch(page -> page.isInserted());
     }
 
-
-    public Semaphore getSemToInsert() {
-        return semToInsert;
-    }
-
-    public void setSemToInsert(Semaphore semToInsert) {
-        this.semToInsert = semToInsert;
-    }
-
-    public Page getPageToInsert() {
-        return pageToInsert;
-    }
-
-    public void setPageToInsert(Page pageToInsert) {
-        this.pageToInsert = pageToInsert;
-    }
-
-    public int getIndexToInsert() {
-        return indexToInsert;
-    }
-
-    public void setIndexToInsert(int indexToInsert) {
-        this.indexToInsert = indexToInsert;
-    }
-
-    public int getOperation() {
-        return operation;
-    }
-
-    public void setOperation(int operation) {
-        this.operation = operation;
-    }
-
-    public Semaphore getSem() {
-        return sem;
-    }
-
-    public void setSem(Semaphore sem) {
-        this.sem = sem;
-    }
-
     public String toDescriptiveString() {
         String desc = "";
         desc += frameId + "-|";
@@ -153,7 +109,45 @@ public class Frame extends Thread {
                 ", pageToInsert=" + pageToInsert +
                 ", indexToInsert=" + indexToInsert +
                 ", operation=" + operation +
-                ", sem=" + sem +
+                ", sem=" + semaphore +
                 '}';
     }
+
+    public void setOperationNull() {
+        operation = 2;
+        semaphore.release();
+    }
+
+    public int getFrameId() {
+        return frameId;
+    }
+
+    public int getLastInsertedIndex() {
+        return lastInsertedIndex;
+    }
+
+    public void setLastInsertedIndex(int lastInsertedIndex) {
+        this.lastInsertedIndex = lastInsertedIndex;
+    }
+
+    public Semaphore getSemToInsert() {
+        return semToInsert;
+    }
+
+    public Semaphore getSemaphore() {
+        return semaphore;
+    }
+
+    public void setPageToInsert(Page pageToInsert) {
+        this.pageToInsert = pageToInsert;
+    }
+
+    public void setIndexToInsert(int indexToInsert) {
+        this.indexToInsert = indexToInsert;
+    }
+
+    public void setOperation(int operation) {
+        this.operation = operation;
+    }
+
 }
