@@ -17,10 +17,6 @@ public class Page {
         indexEntered=-1;
     }
 
-    public boolean isInserted() {
-        return id!=-1;
-    }
-
     public int getId() {
         return id;
     }
@@ -31,6 +27,10 @@ public class Page {
 
     public void setIndexEntered(int indexEntered) {
         this.indexEntered = indexEntered;
+    }
+
+    public boolean isInserted() {
+        return id!=-1;
     }
 
     public String toDescriptiveString() {
