@@ -59,6 +59,11 @@ public class Table extends Thread {
         for (Page page : pages) {
             iteration++;
             System.out.println("Inserir=" + page.getValue());
+//            try {
+//                sleep(3000);
+//            } catch (Exception e) {
+//
+//            }
 
             System.out.print("   ");
             pagesInserted.add(page);
@@ -83,6 +88,7 @@ public class Table extends Thread {
             //Defini qual frame deverá inserir a página
             Frame frameToInsert = compareAndGetFrameToInsert(iteration);
             insert(iteration, page, frameToInsert);
+
         }
         System.out.println("Replacements="+replacements);
     }
@@ -112,8 +118,13 @@ public class Table extends Thread {
                 //Copiar lista de páginas
                 List<Page> pages = new ArrayList<>();
                 pages.addAll(this.pages);
-                List<Page> pagesSublist = pages.subList(iteration, pages.size() - 1);
-                pagesSublist.remove(0);
+
+                List<Page> pagesSublist = pages;
+                try {
+                    pagesSublist = pages.subList(iteration, pages.size() - 1);
+                    pagesSublist.remove(0);
+                } catch(IndexOutOfBoundsException ex ) {
+                }
 
                 //Calclar distancia até a página ser usada novamente
                 int timeToUseAgain = pagesSublist.size()+1;
